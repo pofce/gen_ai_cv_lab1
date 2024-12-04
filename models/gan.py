@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import numpy as np
 from scipy import linalg
 import torchvision.utils as vutils
+import matplotlib.pyplot as plt
 
 
-# Generator and Discriminator classes remain the same
 class Generator(nn.Module):
     def __init__(self, ngpu, nc, nz, ngf):
         super(Generator, self).__init__()
@@ -16,22 +16,22 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
-            # State size. (ngf*8) x 4 x 4
+            # (ngf*8) x 4 x 4
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
-            # State size. (ngf*4) x 8 x 8
+            # (ngf*4) x 8 x 8
             nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
-            # State size. (ngf*2) x 16 x 16
+            # (ngf*2) x 16 x 16
             nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            # State size. (ngf) x 32 x 32
+            # (ngf) x 32 x 32
             nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
-            # Output size. (nc) x 64 x 64
+            # (nc) x 64 x 64
         )
 
     def forward(self, input):
@@ -52,32 +52,31 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            # Input is (nc) x 64 x 64
+            # (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # State size. (ndf) x 32 x 32
+            # (ndf) x 32 x 32
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # State size. (ndf*2) x 16 x 16
+            # (ndf*2) x 16 x 16
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            # State size. (ndf*4) x 8 x 8
+            # (ndf*4) x 8 x 8
             nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
-            # State size. (ndf*8) x 4 x 4
+            # (ndf*8) x 4 x 4
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
-            # Output size. 1
+            # output size is 1
         )
 
     def forward(self, input):
         return self.main(input)
 
 
-# Corrected FID calculation functions
 def calculate_activation_statistics(images, model, cuda=False):
     model.eval()
     with torch.no_grad():
@@ -89,7 +88,7 @@ def calculate_activation_statistics(images, model, cuda=False):
         images_resized = F.interpolate(images, size=(299, 299), mode='bilinear', align_corners=False)
         # Normalize images to [-1, 1]
         images_normalized = 2 * images_resized - 1
-        pred = model(images_normalized)['pool']  # 'pool' is the layer name for the final average pooling
+        pred = model(images_normalized)['pool']
         act = pred.cpu().numpy().reshape(pred.size(0), -1)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
@@ -108,6 +107,7 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
     # Compute square root of product of covariance matrices
     covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp=False)
+
     # Numerical stability
     if not np.isfinite(covmean).all():
         offset = np.eye(sigma1.shape[0]) * eps
@@ -130,15 +130,8 @@ def calculate_fretchet(real_images, fake_images, model, cuda=False):
     return fid_value
 
 
-def bce_loss(predictions, targets):
-    eps = 1e-7  # Small value to avoid log(0)
-    predictions = torch.clamp(predictions, eps, 1 - eps)  # Clamp predictions to avoid instability
-    return -(targets * torch.log(predictions) + (1 - targets) * torch.log(1 - predictions)).mean()
-
-
 def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature_extractor, device,
               num_epochs, nz, fixed_noise, writer, real_label=1.0, fake_label=0.0):
-    """Train the GAN model."""
     img_list = []
     G_losses = []
     D_losses = []
@@ -148,9 +141,6 @@ def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature
 
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader, 0):
-            ############################
-            # (1) Update D network
-            ###########################
             netD.zero_grad()
             real_cpu = data[0].to(device)
             b_size = real_cpu.size(0)
@@ -177,21 +167,16 @@ def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature
             errD = errD_real + errD_fake
             optimizerD.step()
 
-            ############################
-            # (2) Update G network
-            ###########################
             netG.zero_grad()
-            label.fill_(real_label)  # Reverse labels for generator training
+            label.fill_(real_label)
             output = netD(fake).view(-1)
             errG = criterion(output, label)
             errG.backward()
             optimizerG.step()
 
-            # Log losses to TensorBoard
             writer.add_scalar('Generator Loss', errG.item(), iters)
             writer.add_scalar('Discriminator Loss', errD.item(), iters)
 
-            # Save generated images for visualization and log to TensorBoard
             if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
                 with torch.no_grad():
                     fake_display = netG(fixed_noise).detach().cpu()
@@ -204,10 +189,8 @@ def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature
         G_losses.append(errG.item())
         D_losses.append(errD.item())
 
-        # Calculate FID
         fretchet_dist = calculate_fretchet(real_cpu, fake, feature_extractor, cuda=device.type == 'cuda')
 
-        # Log FID to TensorBoard
         writer.add_scalar('FID', fretchet_dist, epoch)
 
         if (epoch + 1) % 5 == 0:

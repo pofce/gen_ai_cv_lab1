@@ -33,7 +33,6 @@ def train_model(writer, model, train_loader, val_loader, optimizer, compute_loss
     for epoch in range(num_epochs):
         print(f'Epoch {epoch + 1}/{num_epochs}')
 
-        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()
@@ -49,7 +48,6 @@ def train_model(writer, model, train_loader, val_loader, optimizer, compute_loss
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    # Compute loss using the provided compute_loss function
                     loss = compute_loss(model, inputs)
 
                     if phase == 'train':
@@ -61,30 +59,25 @@ def train_model(writer, model, train_loader, val_loader, optimizer, compute_loss
             epoch_loss = running_loss / len(dataloader.dataset)
             print(f'{phase} Loss: {epoch_loss:.4f}')
 
-            # Log the loss to TensorBoard
             if phase == 'train':
                 writer.add_scalar('Loss/train', epoch_loss, epoch)
             else:
                 writer.add_scalar('Loss/val', epoch_loss, epoch)
 
             if phase == 'val':
-                # Log reconstructed images
                 model.eval()
                 with torch.no_grad():
                     inputs, _ = next(iter(val_loader))
                     inputs = inputs.to(device)
                     outputs = model.get_reconstructed(inputs)
 
-                    # Select up to 4 images to display
                     N = min(inputs.size(0), 4)
                     inputs = inputs[:N]
                     outputs = outputs[:N]
 
-                    # Create a grid of images
                     input_grid = torchvision.utils.make_grid(inputs.cpu())
                     output_grid = torchvision.utils.make_grid(outputs.cpu())
 
-                    # Log images to TensorBoard
                     writer.add_image('Input Images', input_grid, epoch)
                     writer.add_image('Reconstructed Images', output_grid, epoch)
 
@@ -112,26 +105,20 @@ def evaluate_model(model, test_loader, compute_loss, device, writer):
     average_loss = running_loss / num_samples
     print(f'Test Loss: {average_loss:.4f}')
 
-    # Log the test loss to TensorBoard
     writer.add_scalar('Loss/test', average_loss, global_step=0)
 
-    # Log reconstructed images
     inputs, _ = next(iter(test_loader))
     inputs = inputs.to(device)
     outputs = model.get_reconstructed(inputs)
 
-    # Select up to 4 images to display
     N = min(inputs.size(0), 4)
     inputs = inputs[:N]
     outputs = outputs[:N]
 
-    # Create a grid of images
     input_grid = torchvision.utils.make_grid(inputs.cpu())
     output_grid = torchvision.utils.make_grid(outputs.cpu())
 
-    # Log images to TensorBoard
     writer.add_image('Test/Input Images', input_grid, global_step=0)
     writer.add_image('Test/Reconstructed Images', output_grid, global_step=0)
 
     return average_loss
-
