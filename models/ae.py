@@ -26,6 +26,9 @@ class Autoencoder(nn.Module):
         decoded = self.decoder(encoded)
         return decoded
 
+    def get_reconstructed(self, inputs):
+        return self(inputs)
+
 
 def compute_loss_autoencoder(model, inputs):
     outputs = model(inputs)

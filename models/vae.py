@@ -69,6 +69,10 @@ class VAE(nn.Module):
 
         return generated_imgs
 
+    def get_reconstructed(self, inputs):
+        recon_x, _, _ = self(inputs)
+        return recon_x
+
 
 def custom_mse_loss(recon_x, x):
     return torch.sum((recon_x - x) ** 2)
