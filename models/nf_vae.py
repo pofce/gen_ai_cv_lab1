@@ -28,7 +28,6 @@ class NFVAE(nn.Module):
         self.latent_dim = latent_dim
         self.flow_length = flow_length
 
-        # Encoder
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 32, 4, 2, 1),
             nn.ReLU(),
@@ -41,10 +40,8 @@ class NFVAE(nn.Module):
         self.fc_mu = nn.Linear(128 * 4 * 4, latent_dim)
         self.fc_logvar = nn.Linear(128 * 4 * 4, latent_dim)
 
-        # Normalizing Flows
         self.flows = nn.ModuleList([PlanarFlow(latent_dim) for _ in range(flow_length)])
 
-        # Decoder
         self.decoder_input = nn.Linear(latent_dim, 128 * 4 * 4)
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(128, 64, 4, 2, 1),

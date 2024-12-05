@@ -33,7 +33,7 @@ def show_reconstructed_images(model, test_loader, device, num_images=5):
     images, _ = next(iter(test_loader))
     images = images.to(device)[:num_images]
     with torch.no_grad():
-        outputs, _, _ = model(images)
+        outputs, *_ = model(images)
     images = images.cpu()
     outputs = outputs.cpu()
 
