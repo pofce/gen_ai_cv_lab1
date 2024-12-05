@@ -2,6 +2,8 @@ import torch.nn as nn
 
 
 class Autoencoder(nn.Module):
+    name = "autoencoder"
+
     def __init__(self):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(

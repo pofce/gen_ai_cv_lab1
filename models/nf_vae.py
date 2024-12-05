@@ -23,6 +23,8 @@ class PlanarFlow(nn.Module):
 
 
 class NFVAE(nn.Module):
+    name = "nf_vae"
+
     def __init__(self, latent_dim=128, flow_length=2):
         super(NFVAE, self).__init__()
         self.latent_dim = latent_dim
