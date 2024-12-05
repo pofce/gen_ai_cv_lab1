@@ -1,7 +1,7 @@
 ### **Directory Breakdown**
 1. **checkpoints/**
    - Stores trained model weights.
-   - Files like `best_autoencoder.pth`, `best_nf_vae.pth`, and `best_vae.pth` indicate that the best-performing models for autoencoders, VAEs, and NF-VAEs are saved here.
+   - Files for the best-performing models are saved here.
 
 2. **data/**
    - Contains datasets and any associated files.

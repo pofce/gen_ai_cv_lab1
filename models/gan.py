@@ -136,6 +136,7 @@ def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature
     G_losses = []
     D_losses = []
     iters = 0
+    best_fid = float('inf')  # Initialize to infinity
 
     print("Starting Training Loop...")
 
@@ -190,8 +191,17 @@ def train_gan(netG, netD, dataloader, criterion, optimizerG, optimizerD, feature
         D_losses.append(errD.item())
 
         fretchet_dist = calculate_fretchet(real_cpu, fake, feature_extractor, cuda=device.type == 'cuda')
-
         writer.add_scalar('FID', fretchet_dist, epoch)
+
+        if fretchet_dist < best_fid:
+            best_fid = fretchet_dist
+            torch.save({
+                'generator_state_dict': netG.state_dict(),
+                'discriminator_state_dict': netD.state_dict(),
+                'fid': fretchet_dist,
+                'epoch': epoch,
+            }, "../checkpoints/gan.pth")
+            print(f"Saved best model with FID: {best_fid:.4f}")
 
         if (epoch + 1) % 5 == 0:
             print('[%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tFretchet_Distance: %.4f' %
