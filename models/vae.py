@@ -8,26 +8,24 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.latent_dim = latent_dim
 
-        # Encoder
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 32, 4, 2, 1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(32, 64, 4, 2, 1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(64, 128, 4, 2, 1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Flatten(),
         )
         self.fc_mu = nn.Linear(128 * 4 * 4, latent_dim)
         self.fc_logvar = nn.Linear(128 * 4 * 4, latent_dim)
 
-        # Decoder
         self.decoder_input = nn.Linear(latent_dim, 128 * 4 * 4)
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(128, 64, 4, 2, 1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(64, 32, 4, 2, 1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(32, 3, 4, 2, 1),
             nn.Tanh(),
         )
@@ -57,10 +55,8 @@ class VAE(nn.Module):
         decoder_input = decoder_input.view(-1, 128, 4, 4)
         generated_imgs = self.decoder(decoder_input)
 
-        # Convert to CPU and rescale for visualization
         imgs = (generated_imgs.detach().cpu() + 1) / 2  # Rescale from [-1, 1] to [0, 1]
 
-        # Plot the images
         fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
         for i in range(num_images):
             axes[i].imshow(imgs[i].permute(1, 2, 0).numpy())

@@ -2,6 +2,7 @@ import torch
 import torchvision
 from torchvision import datasets
 from torch.utils.data import DataLoader, random_split
+import matplotlib.pyplot as plt
 
 
 def download_cifar10_data():
@@ -25,6 +26,35 @@ def prepare_cifar10_data(transform, batch_size=64, val_split=0.2):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
+
+
+def show_reconstructed_images(model, test_loader, device, num_images=5):
+    model.eval()
+    images, _ = next(iter(test_loader))
+    images = images.to(device)[:num_images]
+    with torch.no_grad():
+        outputs, _, _ = model(images)
+    images = images.cpu()
+    outputs = outputs.cpu()
+
+    fig, axes = plt.subplots(nrows=2, ncols=num_images, sharex=True, sharey=True, figsize=(15, 4))
+    for i in range(num_images):
+        # Original images
+        img = images[i]
+        img = img.permute(1, 2, 0)
+        axes[0, i].imshow(img.numpy())
+        axes[0, i].axis('off')
+
+        # Reconstructed images
+        recon = outputs[i]
+        recon = recon * 0.5 + 0.5  # Unnormalize
+        recon = recon.permute(1, 2, 0)
+        axes[1, i].imshow(recon.numpy())
+        axes[1, i].axis('off')
+
+    axes[0, 0].set_ylabel('Original')
+    axes[1, 0].set_ylabel('Reconstructed')
+    plt.show()
 
 
 def train_model(writer, model, train_loader, val_loader, optimizer, compute_loss, num_epochs, device):
